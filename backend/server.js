@@ -7,8 +7,14 @@ require('dotenv').config();
 const Parking = require('./models/parkings'); 
 const Reservation = require('./models/reservations'); 
 const User = require('./models/users')
+const { Server } = require('socket.io');
+require('dotenv').config();
+const http = require('http');
 const app = express();
 const port = 4000;
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -19,6 +25,20 @@ mongoose.connect(process.env.MONGO_URI, {
 
 app.use(cors());
 app.use(express.json());
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE']
+    }
+});
+
+const parkingChangeStream = Parking.watch();
+parkingChangeStream.on('change', (change) => {
+    console.log('Cambio detectado en MongoDB:', change);
+    io.emit('update', change);
+});
 
 app.get('/api/parkings', async (req, res) => {
     try {
@@ -132,10 +152,49 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
+app.put('/api/parkings/:id', async (req, res) => {
+    try {
+        const parkingId = req.params.id; // Obtener el ID del parking desde la URL
+        const { available, occupied, updatedAt, image } = req.body; // Agregar "image" a los datos recibidos
+
+        // Validar los datos recibidos
+        if (
+            typeof available !== 'number' ||
+            typeof occupied !== 'number' ||
+            !updatedAt ||
+            (image && typeof image !== 'string')
+        ) {
+            return res.status(400).json({
+                message: 'Campos "available", "occupied", "updatedAt" son requeridos, e "image" debe ser una cadena (Base64).',
+            });
+        }
+
+        const updatedParking = await Parking.findByIdAndUpdate(
+            parkingId,
+            {
+                available,
+                occupied,
+                updatedAt: new Date(updatedAt),
+                ...(image && { image }),
+            },
+            { new: true }
+        );
+
+        if (!updatedParking) {
+            return res.status(404).json({ message: 'Parking no encontrado.' });
+        }
+
+        res.status(200).json(updatedParking);
+    } catch (error) {
+        console.error('Error al actualizar el parking:', error);
+        res.status(500).json({ message: 'Error al actualizar el parking.', error });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('El servidor está funcionando correctamente.');
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });

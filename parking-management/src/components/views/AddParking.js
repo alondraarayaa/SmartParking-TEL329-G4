@@ -13,7 +13,6 @@ const AddParking = ({ logout }) => {
     const [form, setForm] = useState({
         location: '',
         rate: '',
-        capacity: '',
     });
 
     const [message, setMessage] = useState('');
@@ -35,11 +34,12 @@ const AddParking = ({ logout }) => {
                 body: JSON.stringify({
                     location: form.location,
                     occupied: 0, 
-                    available: Number(form.capacity),
+                    available: 6, // Capacidad predeterminada
                     pricePerHour: Number(form.rate),
                     createdAt: new Date(),
                     updatedAt: new Date(), 
-                    currentUsers: {}
+                    currentUsers: {},
+                    image: null
                 }),
             });
     
@@ -48,7 +48,7 @@ const AddParking = ({ logout }) => {
                 setMessage('Estacionamiento agregado con éxito');
                 console.log('Respuesta del servidor:', data);
                 // Limpiar formulario después de enviar
-                setForm({ location: '', rate: '', capacity: '' });
+                setForm({ location: '', rate: '' });
             } else {
                 setMessage('Error al agregar el estacionamiento');
                 console.error('Error al enviar los datos:', response.statusText);
@@ -81,16 +81,6 @@ const AddParking = ({ logout }) => {
                             type="number"
                             name="rate"
                             value={form.rate}
-                            onChange={handleChange}
-                            required
-                        />
-                    </Label>
-                    <Label>
-                        Capacidad:
-                        <Input
-                            type="number"
-                            name="capacity"
-                            value={form.capacity}
                             onChange={handleChange}
                             required
                         />
