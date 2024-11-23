@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 import {
     GlobalContainer,
     ContentContainer,
@@ -9,14 +10,16 @@ import {
 } from './styles';
 import { FaMapMarkerAlt, FaDollarSign, FaEye } from 'react-icons/fa';
 
+const socket = io('http://localhost:4000');
+
 const ViewParking = () => {
     const [parkingSpaces, setParkingSpaces] = useState([]);
-    const [expandedParkingId, setExpandedParkingId] = useState(null);
+    const [viewImageId, setViewImageId] = useState(null);
 
     useEffect(() => {
         const fetchParkingSpaces = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/parkings'); 
+                const response = await fetch('http://localhost:4000/api/parkings');
                 if (response.ok) {
                     const data = await response.json();
                     setParkingSpaces(data);
@@ -28,11 +31,20 @@ const ViewParking = () => {
             }
         };
 
-        fetchParkingSpaces(); 
+        fetchParkingSpaces();
+
+        socket.on('update', async () => {
+            console.log('Actualización detectada desde el servidor');
+            await fetchParkingSpaces();
+        });
+
+        return () => {
+            socket.off('update');
+        };
     }, []);
 
-    const toggleExpand = (parkingId) => {
-        setExpandedParkingId(expandedParkingId === parkingId ? null : parkingId);
+    const toggleViewImage = (parkingId) => {
+        setViewImageId(viewImageId === parkingId ? null : parkingId);
     };
 
     return (
@@ -42,31 +54,27 @@ const ViewParking = () => {
                 <div>
                     {parkingSpaces.length > 0 ? (
                         parkingSpaces.map((space) => (
-                            <ParkingCard key={space._id}> 
-                                <h3>Estacionamiento {space._id}</h3> 
+                            <ParkingCard key={space._id}>
+                                <h3>Estacionamiento {space._id}</h3>
                                 <p>Ocupados: {space.occupied} | Desocupados: {space.available}</p>
                                 <ButtonContainer>
-                                    <ActionButton style={{ backgroundColor: '#83a3fb' }}> <FaMapMarkerAlt /> Ubicación: {space.location}</ActionButton>
-                                    <ActionButton onClick={() => toggleExpand(space._id)}>
-                                        Ver Usuarios
+                                    <ActionButton style={{ backgroundColor: '#83a3fb' }}>
+                                        <FaMapMarkerAlt /> Ubicación: {space.location}
+                                    </ActionButton>
+                                    <ActionButton onClick={() => toggleViewImage(space._id)}>
+                                        <FaEye /> Ver Estacionamiento
                                     </ActionButton>
                                 </ButtonContainer>
-                                {expandedParkingId === space._id && (
-                                    <div style={{ marginTop: '10px', padding: '10px', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                                        <h4>Usuarios Actuales:</h4>
-                                        {space.currentUsers && space.currentUsers.length > 0 ? (
-                                            <ul>
-                                                {space.currentUsers.map((user) => (
-                                                    <li key={user.userId}>
-                                                        <strong>Nombre:</strong> {user.name} <br />
-                                                        <strong>Inicio:</strong> {new Date(user.startTime).toLocaleString()} <br />
-                                                        <strong>Fin:</strong> {new Date(user.endTime).toLocaleString()} <br />
-                                                        <strong>Estado:</strong> {user.status}
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                {viewImageId === space._id && (
+                                    <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                                        {space.image && space.image !== 'null' ? (
+                                            <img
+                                                src={space.image}
+                                                alt={`Estacionamiento ${space._id}`}
+                                                style={{ maxWidth: '100%', borderRadius: '8px' }}
+                                            />
                                         ) : (
-                                            <p>No hay usuarios utilizando este estacionamiento.</p>
+                                            <p>No hay imagen disponible para este estacionamiento.</p>
                                         )}
                                     </div>
                                 )}

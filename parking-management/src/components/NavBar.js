@@ -21,11 +21,24 @@ const NavBar = ({ logout }) => {
         setShowDropdown((prevState) => !prevState);
     };
 
+    const handleHomeClick = () => {
+        navigate('/');
+    };
+
     return (
         <NavBarContainer>
             <NavLeft>
-                <NavTitle>SmartParking</NavTitle>
-                <Logo src={parkingImage} alt="SmartParking Logo" />
+            <NavTitle 
+                    onClick={handleHomeClick} 
+                    style={{ cursor: 'pointer' }}>
+                    SmartParking
+                </NavTitle>
+                <Logo
+                    src={parkingImage}
+                    alt="SmartParking Logo"
+                    onClick={handleHomeClick}
+                    style={{ cursor: 'pointer' }}
+                />
             </NavLeft>
             <NavRight>
                 <ProfilePicture src={profilePic} alt="Profile" onClick={toggleDropdown} />

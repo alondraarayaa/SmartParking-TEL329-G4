@@ -18,6 +18,9 @@ const ParkingSchema = new Schema({
         type: Number,
         required: true
     },
+    image: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now
